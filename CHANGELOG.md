@@ -13,6 +13,11 @@
 - **修正一个错误认知**：DSH 桌面端（0.1.7）**不会**把第三方插件的 `Config` schema 渲染成设置表单。`dsh-settings` 自己写着「autoGenerate … 目前没有已发布的客户端这样做」，而侧边栏里像「演示文稿」那样的是 `dsh-ppt` 自己注册 React 组件做的。`Config` 保留下来只用于装载时校验与字段清单；改配置的通道是 `lo_config`。
 - 工具数从 4 个变成 5 个，相关测试断言同步更新。
 
+### 修复
+
+- soffice / python 归一化后曾是 undefined，导致 lo_config 的返回值被 DSH 判为 `value is not lossless JSON`。现在保留空字符串（语义即「自动探测」），并在工具出口统一 scrub() 掉 undefined。
+- lo_config reset 的改动列表曾渲染成 [object Object]。
+
 ## 0.3.0
 
 ### 新增

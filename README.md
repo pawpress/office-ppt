@@ -235,6 +235,7 @@ node bin/lo-ppt.mjs convert 报告.docx --to pdf
 npm test            # 工具 schema 必须是合法 JSON Schema（不需要 LibreOffice）
 npm run test:config # 设置 schema / 归一化兜底 / volatile 容器（不需要 LibreOffice）
 npm run test:store  # 14 项：lo_config 的 YAML 解析 / 渲染 / 替换 / 字段校验（不需要 LibreOffice）
+npm run test:config-tool # 19 项：lo_config 的 show/set/reset 契约与写盘行为（不需要 LibreOffice）
 npm run test:json   # 返回值必须过 DSH 的 lossless-JSON 校验
 npm run test:autofit # 12 项：自动排版真的缩字 / 真的不误报（需要 LibreOffice）
 npm run test:smoke  # 27 项：真跑各工具、产物落盘校验

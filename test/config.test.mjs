@@ -69,10 +69,13 @@ check('归一化：footer 空字符串是合法值（表示不画页脚）', () 
   assert.equal(resolveOptions({}).footer, DEFAULTS.footer);
 });
 
-check('归一化：soffice/python 空串归一成 undefined', () => {
+check('归一化：soffice/python 空串保持空串（不能是 undefined）', () => {
+  // 曾经归一化成 undefined，结果工具返回值被 DSH 判废：
+  // 「value is not lossless JSON」——undefined 不是合法 JSON 值。
   const options = resolveOptions({ soffice: '   ', python: '' });
-  assert.equal(options.soffice, undefined);
-  assert.equal(options.python, undefined);
+  assert.equal(options.soffice, '');
+  assert.equal(options.python, '');
+  assert.equal(Number.isFinite(1) && JSON.stringify({ a: options.soffice }), '{"a":""}');
 });
 
 check('归一化：keepWarm 只有显式 false 才关', () => {
