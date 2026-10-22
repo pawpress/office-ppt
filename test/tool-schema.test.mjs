@@ -28,7 +28,7 @@ function checkRequired(node, path) {
 
 test('all LibreOffice tools use array-valued JSON Schema required keywords', () => {
   const tools = buildLoTools();
-  assert.deepEqual(tools.map(tool => tool.name), ['lo_probe', 'lo_build', 'lo_render', 'lo_convert']);
+  assert.deepEqual(tools.map(tool => tool.name), ['lo_probe', 'lo_build', 'lo_render', 'lo_convert', 'lo_config']);
   for (const tool of tools) {
     assert.equal(tool.parameters.type, 'object');
     checkRequired(tool.parameters, `${tool.name}.parameters`);

@@ -39,6 +39,9 @@ jobs:
       - name: Settings schema
         run: node test/config.test.mjs
 
+      - name: Config store
+        run: node test/store.test.mjs
+
   # 端到端：装真 LibreOffice，跑真实生成与 lossless-JSON 校验。
   integration:
     name: integration (libreoffice)

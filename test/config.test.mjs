@@ -133,11 +133,11 @@ check('工具默认值继承配置：主题/比例/页脚/页码', () => {
   assert.deepEqual(theme.enum, THEMES);
 });
 
-check('四个工具都注册且 required 都是数组', () => {
+check('五个工具都注册且 required 都是数组', () => {
   const tools = buildLoTools(resolveOptions({}));
   assert.deepEqual(
     tools.map((tool) => tool.name),
-    ['lo_probe', 'lo_build', 'lo_render', 'lo_convert'],
+    ['lo_probe', 'lo_build', 'lo_render', 'lo_convert', 'lo_config'],
   );
   for (const tool of tools) {
     if (tool.parameters.required !== undefined) {

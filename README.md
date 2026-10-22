@@ -45,7 +45,7 @@ DSH 的插件管理器接受 pnpm 的 git 规格，直接从仓库装：
 github:pawpress/office-ppt
 ```
 
-在 **设置 → 插件** 里粘贴这段，或在会话里让助手调用 `plugin_manager` 的 `install_bundle`。装完重启桌面端，日志里出现 `[dsh-lo-office] 已注册 4 个工具` 即可。
+在 **设置 → 插件** 里粘贴这段，或在会话里让助手调用 `plugin_manager` 的 `install_bundle`。装完重启桌面端，日志里出现 `[dsh-lo-office] 已注册 5 个工具` 即可。
 
 ### 方式二：本地开发（改代码用）
 
@@ -75,33 +75,46 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
 >
 > ⚠️ 插件源码改动**不会热重载**（DSH 的 HMR 默认只监听 profile manifest 和 patch，不监听插件源码）。改完要重启桌面端。
 
-## 设置面板
+## 配置：用命令，不用设置页
 
-插件声明了 `Config`（`lib/config.js`），DSH 会把它自动渲染成 **设置 → 插件 → office-ppt** 里的一张表单。只有标了 `.volatile()` 的字段会上表单，改完写进当前 profile 的 patch，不用重启就生效。
+**DSH 桌面端（0.1.7）不会给第三方插件渲染设置表单。** 这一点我踩过坑，写清楚免得你也浪费时间：
 
-| 字段 | 默认值 | 作用 |
+- `dsh-settings` 里写着「每个表单报告 `autoGenerate`…**目前没有已发布的客户端这样做**」
+- 侧边栏里像「演示文稿」那种条目，是 `dsh-ppt` **自己写 React 组件**注册进 `settings.section` 的结果，不是自动生成
+- 插件的 `Config` schema 只负责**装载时校验**，不产出 UI
+
+所以改配置走 `lo_config` 工具：
+
+```
+lo_config { action: "show" }
+lo_config { action: "set", key: "theme", value: "swiss" }
+lo_config { action: "set", changes: { autoFit: "off", minFontSize: 10 } }
+lo_config { action: "reset" }
+```
+
+它做两件事：**当场改内存里的配置**（下一条工具调用就生效），并把非默认值写进 profile 的 `cordis.patch.yml`（重启后依然有效）。只写和出厂默认不同的字段，条目保持干净；实测改它时其余 16 个条目逐字节不变。
+
+| 字段 | 默认 | 说明 |
 |---|---|---|
-| `soffice` | 空（自动探测） | `soffice.exe` 完整路径；自动探测失败时填 |
-| `python` | 空（用自带的） | 带 `uno` 模块的 python 解释器 |
-| `theme` | `light` | 默认主题：`light` / `dark` / `slate` / `warm` / `swiss` |
-| `ratio` | `16:9` | 默认画布比例（`4:3` 可选） |
-| `formats` | `pptx,pdf,png` | 默认导出格式（可加 `odp`） |
+| `soffice` | 空（自动探测） | `soffice.exe` 完整路径 |
+| `python` | 空（用自带的） | 带 `uno` 模块的 python |
+| `theme` | `light` | `light` / `dark` / `slate` / `warm` / `swiss` |
+| `ratio` | `16:9` | `16:9` / `4:3` |
+| `formats` | `pptx,pdf,png` | 默认导出格式，可加 `odp` |
 | `pngWidth` | `1600` | 逐页 PNG 宽度（320–3840） |
-| `footer` | `office-ppt · 由本机 LibreOffice 生成` | 默认页脚；填空字符串则不画 |
-| `pageNumbers` | `true` | 默认是否显示页码 |
-| `autoFit` | `shrink` | 自动排版：`shrink` 放不下就缩字号，`off` 保持原字号 |
-| `minFontSize` | `12` | 自动排版最多缩到多少磅 |
-| `timeoutMs` | `240000` | 单次调用超时（5 秒–15 分钟） |
-| `keepWarm` | `true` | 复用常驻 soffice 进程 |
-| `idleMs` | `60000` | 常驻进程空闲多久回收 |
+| `footer` | `office-ppt · 由本机 LibreOffice 生成` | 页脚文字，空字符串=不画 |
+| `pageNumbers` | `true` | 是否显示页码 |
+| `autoFit` | `shrink` | 自动排版：`shrink` 缩字号 / `off` 不干预 |
+| `minFontSize` | `12` | 自动排版最小字号（6–72） |
+| `timeoutMs` | `240000` | 单次调用超时 |
+| `keepWarm` | `true` | 复用常驻 soffice |
+| `idleMs` | `60000` | 常驻进程空闲回收（毫秒） |
 
-任何字段都能被单次工具调用的同名参数覆盖（例如临时换个主题），面板里的值只是默认值。
-
-`soffice` / `python` 两项是为了替代以前的环境变量 `DSH_LO_SOFFICE` / `DSH_LO_PYTHON` —— 环境变量仍然有效，但正常情况下面板更好用。
+任何字段都能被单次工具调用的同名参数覆盖，配置里的值只是默认值。
 
 ## 自动排版
 
-设置里的 `autoFit`（默认 `shrink`）解决「文字塞不下」这个最常见的排版事故：文案一长，字就冲出文本框盖住页脚。
+配置里的 `autoFit`（默认 `shrink`）解决「文字塞不下」这个最常见的排版事故：文案一长，字就冲出文本框盖住页脚。
 
 做法不是估字宽——估算是排版事故的最大来源——而是**让 LibreOffice 自己排一遍**：把文本框的 `TextAutoGrowHeight` 打开、宽度固定、高度设成极小值，再读回 `shape.Size.Height`，就得到这段文字在给定宽度下需要多高。放不下就用二分法缩小字号重新量，直到塞进去或触到 `minFontSize`。
 
@@ -130,7 +143,7 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
 
 `lo_build` / `lo_render` / `lo_convert` / `lo_probe` 都接了 DSH 的 abort signal：会话里打断，Node 侧会杀掉整棵子进程树（`taskkill /T /F`），不会留下跑到一半的 soffice。
 
-## 四个工具
+## 五个工具
 
 ### `lo_probe`
 
@@ -179,6 +192,21 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
 
 任意格式互转（docx / xlsx / pptx / odt / ods / odp / pdf …），走 `soffice --convert-to`。参数：`source`、`to`（必填）、`outputDir`。
 
+### `lo_config`
+
+查看与修改本插件配置 —— DSH 桌面端不渲染第三方插件的设置表单，所以这是唯一的改配置通道。参数：`action`（`show` / `set` / `reset`）、`key`+`value` 或 `changes`（一次改多项）。
+
+```text
+lo_config { action: "set", changes: { theme: "swiss", autoFit: "off" } }
+→ ✅ 已更新 2 项配置
+    theme: light → swiss
+    autoFit: shrink → off
+  磁盘 patch：D:\dsh1\.dsh\profiles\desktop\cordis.patch.yml
+  已在当前进程生效。
+```
+
+写入是**幂等**的：只把和出厂默认不同的字段写进 patch，重复设同一个值不会产生改动，也不会碰其它插件条目。
+
 ## 样张
 
 同一份 7 页规格（`test/sample-build.json`）的产物，2.4 秒生成：
@@ -206,9 +234,10 @@ node bin/lo-ppt.mjs convert 报告.docx --to pdf
 ```bash
 npm test            # 工具 schema 必须是合法 JSON Schema（不需要 LibreOffice）
 npm run test:config # 设置 schema / 归一化兜底 / volatile 容器（不需要 LibreOffice）
+npm run test:store  # 14 项：lo_config 的 YAML 解析 / 渲染 / 替换 / 字段校验（不需要 LibreOffice）
 npm run test:json   # 返回值必须过 DSH 的 lossless-JSON 校验
 npm run test:autofit # 12 项：自动排版真的缩字 / 真的不误报（需要 LibreOffice）
-npm run test:smoke  # 26 项：真跑四个工具、产物落盘校验
+npm run test:smoke  # 27 项：真跑各工具、产物落盘校验
 ```
 
 `check-json.mjs` 优先 import 桌面端自带的 `@deepseek-ai/dsh-util-values` 校验器（`DSH_APP_DIR` 可覆盖路径）；没有桌面端的机器（CI）自动退回同规则的本地镜像。

@@ -46,7 +46,7 @@ apply(ctx, {});
 
 check('inject 声明了 tools', Array.isArray(inject) && inject.includes('tools'), JSON.stringify(inject));
 check('插件名正确', name === 'dsh-lo-office', name);
-check('注册了 4 个工具', tools.size === 4, [...tools.keys()].join(', '));
+check('注册了 5 个工具', tools.size === 5, [...tools.keys()].join(', '));
 
 for (const [toolName, definition] of tools) {
   const schemaOk = definition.parameters && definition.parameters.type === 'object';

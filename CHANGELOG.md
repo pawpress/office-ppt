@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+### 新增
+
+- **`lo_config` 工具**：查看 / 修改 / 重置插件配置。`action=show` 看当前值，`action=set` 改一项或多项，`action=reset` 恢复出厂。改完当场生效，并把非默认值写进 profile 的 `cordis.patch.yml`（重启后依然有效）。
+- `lib/store.js`：配置的持久化层 —— 解析 / 渲染 / 替换 patch 里的本插件条目，字段校验与范围钳制。
+- `test/store.test.mjs`（14 项）：YAML 条目解析、渲染、替换、往返一致性、字段校验、以及「本插件不在 patch 里时是新增而非替换」。
+
+### 变更
+
+- **修正一个错误认知**：DSH 桌面端（0.1.7）**不会**把第三方插件的 `Config` schema 渲染成设置表单。`dsh-settings` 自己写着「autoGenerate … 目前没有已发布的客户端这样做」，而侧边栏里像「演示文稿」那样的是 `dsh-ppt` 自己注册 React 组件做的。`Config` 保留下来只用于装载时校验与字段清单；改配置的通道是 `lo_config`。
+- 工具数从 4 个变成 5 个，相关测试断言同步更新。
+
 ## 0.3.0
 
 ### 新增
