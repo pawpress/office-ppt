@@ -1,0 +1,59 @@
+{
+  "name": "dsh-lo-office",
+  "version": "0.1.0",
+  "description": "Drive the locally installed LibreOffice over UNO from DeepSeek Harness: build editable PPTX/ODP decks and render PPTX to PDF or per-slide PNG, using real Impress instead of a pure-JS writer.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "libreoffice",
+    "uno",
+    "ppt",
+    "pptx",
+    "impress",
+    "slides",
+    "presentation"
+  ],
+  "license": "MIT",
+  "author": "dsh-lo-office contributors",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./engine": "./lib/engine.js",
+    "./tools": "./lib/tools.js"
+  },
+  "bin": {
+    "lo-ppt": "bin/lo-ppt.mjs"
+  },
+  "files": [
+    "lib",
+    "python",
+    "bin",
+    "README.md",
+    "CHANGELOG.md",
+    "cordis.patch.yml"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/tool-schema.test.mjs",
+    "test:smoke": "node test/smoke.mjs",
+    "test:json": "node test/check-json.mjs",
+    "test:all": "npm run test && npm run test:json && npm run test:smoke"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": "*"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh": {
+      "optional": true
+    }
+  }
+}

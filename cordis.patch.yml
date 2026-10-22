@@ -1,0 +1,6 @@
+# dsh-lo-office —— 单个插件，四个工具，不需要拆组件。
+# 依赖外部 LibreOffice 安装（本机 26.8 实测通过）；没装时 lo_probe 会明确报错。
+- insert:
+    - id: dsh-lo-office
+      name: dsh-lo-office
+      config: {}

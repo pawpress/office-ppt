@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 纯 Node 检查：不需要 LibreOffice，三个平台都跑。
+  unit:
+    name: unit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Tool schemas
+        run: node --test test/tool-schema.test.mjs
+
+  # 端到端：装真 LibreOffice，跑真实生成与 lossless-JSON 校验。
+  integration:
+    name: integration (libreoffice)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install LibreOffice and UNO bindings
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice-impress python3-uno
+
+      - name: Probe
+        run: node bin/lo-ppt.mjs probe
+
+      - name: Lossless JSON guard
+        run: node test/check-json.mjs
+        env:
+          # 没装桌面端，校验器不可用 → 脚本自动退回本地镜像。
+          DSH_APP_DIR: /nonexistent
+
+      - name: Smoke test
+        run: node test/smoke.mjs
+
+      - name: Upload sample deck
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-deck
+          path: test/out/
+          if-no-files-found: ignore

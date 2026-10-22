@@ -1,0 +1,16 @@
+# 统一按 LF 存文本，Windows 检出也不引入 CRLF，避免 python/JS 混排时出现整文件 diff
+* text=auto eol=lf
+
+*.py   text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+
+# 二进制
+*.png  binary
+*.jpg  binary
+*.pptx binary
+*.odp  binary
+*.pdf  binary

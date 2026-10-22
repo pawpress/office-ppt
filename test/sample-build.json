@@ -1,0 +1,67 @@
+{
+  "command": "build",
+  "outDir": "D:\\dsh1\\dsh-lo-office\\test\\out",
+  "baseName": "sample",
+  "formats": ["pptx", "odp", "pdf", "png"],
+  "pngWidth": 1600,
+  "spec": {
+    "title": "LibreOffice 直连验证",
+    "theme": "light",
+    "ratio": "16:9",
+    "font": "Microsoft YaHei",
+    "footer": "dsh-lo-office · 由本机 LibreOffice 26.8 生成",
+    "pageNumbers": true,
+    "slides": [
+      {
+        "layout": "cover",
+        "kicker": "ENGINE PROBE · 2026",
+        "title": "用本机 LibreOffice 26.8 直接做 PPT",
+        "subtitle": "UNO 桥 → ODP / PPTX / PDF / 逐页 PNG",
+        "notes": "封面备注：这是 UNO 桥生成的封面页。"
+      },
+      {
+        "layout": "bullets",
+        "kicker": "能力边界",
+        "title": "它到底能做什么",
+        "bullets": [
+          "建页、文本框、字号字重、对齐锚点",
+          "插入图片并等比居中裁剪",
+          "原生表格（表头底色 + 斑马纹）",
+          "演讲者备注写入 NotesPage",
+          "切页动画写入 TransitionType",
+          "导出 ODP / PPTX / PDF / 逐页 PNG"
+        ]
+      },
+      {
+        "layout": "table",
+        "title": "实测数据",
+        "rows": [
+          ["项目", "结果", "备注"],
+          ["UNO 连接", "0.51 s", "独立 UserInstallation"],
+          ["建文档", "0.88 s", "private:factory/simpress"],
+          ["导出 PPTX", "通过", "Impress MS PowerPoint 2007 XML"],
+          ["导出 PNG", "逐页", "FilterData PageNumber"]
+        ]
+      },
+      {
+        "layout": "statement",
+        "text": "不是再写一个 PPTX 生成器，\n是把你的 LibreOffice 接进来。"
+      },
+      {
+        "layout": "quote",
+        "text": "转换不发现系统 LibreOffice。",
+        "subtitle": "—— @deepseek-ai/libreoffice-kit README"
+      },
+      {
+        "layout": "section",
+        "title": "第二部分 · 渲染复核",
+        "subtitle": "生成完之后，用同一台机器把真实画面渲出来"
+      },
+      {
+        "layout": "closing",
+        "title": "谢谢",
+        "subtitle": "生成只是开始，渲染复核才是交付"
+      }
+    ]
+  }
+}

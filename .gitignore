@@ -1,0 +1,8 @@
+# 构建/运行产物
+__pycache__/
+*.pyc
+node_modules/
+
+# 生成结果（保留 test/out 作为样例时不要提交其中间文件）
+test/out-tool/
+test/probe/
