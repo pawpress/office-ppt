@@ -16,6 +16,14 @@
   ],
   "license": "MIT",
   "author": "dsh-lo-office contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OWNER/office-ppt.git"
+  },
+  "homepage": "https://github.com/OWNER/office-ppt#readme",
+  "bugs": {
+    "url": "https://github.com/OWNER/office-ppt/issues"
+  },
   "type": "module",
   "main": "lib/index.js",
   "exports": {

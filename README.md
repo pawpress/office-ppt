@@ -232,6 +232,24 @@ CI 见 [.github/workflows/ci.yml](.github/workflows/ci.yml)：三平台跑 schem
 3. 生成慢或超时 → 检查是不是有别的 soffice 实例占着 socket；插件已经随机端口 + 独立 profile，正常不会撞。
 4. 桌面端日志：`%APPDATA%\DSH Desktop\logs\host\dsh-<日期>.log`，搜 `dsh-lo-office`。
 
+## 发布前必改
+
+仓库里所有需要替换的地方都写成占位符 `OWNER`，推之前一次性改掉：
+
+```bash
+grep -rn "OWNER" README.md package.json
+```
+
+- `README.md` 的安装规格 `github:OWNER/office-ppt`
+- `package.json` 的 `repository` / `homepage` / `bugs`
+
+然后：
+
+```bash
+git remote add origin https://github.com/OWNER/office-ppt.git
+git push -u origin main
+```
+
 ## 许可
 
 [MIT](LICENSE)
