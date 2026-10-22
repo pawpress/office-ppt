@@ -273,6 +273,7 @@ CI 见 [.github/workflows/ci.yml](.github/workflows/ci.yml)：三平台跑 schem
 - **工具返回值必须是纯 JSON**。任何不可枚举的自有属性都会被 DSH 判为 `value is not lossless JSON`（见 `lib/tools.js` 里的 `renderCwd` WeakMap）。
 - **工具的 `parameters` 是原生 JSON Schema**，`required` 必须写成字符串数组；写成 `required: true` 会让整个请求报 `Invalid schema for function`。
 - **`soffice.exe` 的退出码不等于成功**。`--convert-to` 失败时它照样返回 0，必须检查产物文件在不在、字节数是否非零。
+- **`inject` 只能是数组**（或「服务名→拦截配置」映射）。写成 `{ required: [...], optional: [...] }` 会被 cordis 当成两个名叫 `required`/`optional` 的服务，插件**永远卡在 `pending (waiting for services)`**，连工具都不会注册。可选服务要用 `ctx.inject(['commands'], cb)` 子上下文挂。
 - **常驻进程要连带杀掉整个进程树**。`soffice.exe` 会再建一个 `soffice.bin`，只 kill 父进程会留下孤儿，下次启动被它挡住。Windows 上用 `taskkill /T /F /PID`。
 
 ## 已知边界

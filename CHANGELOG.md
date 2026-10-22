@@ -14,6 +14,10 @@
 
 - `inject` 从 `['tools']` 改成 `{ required: ['tools'], optional: ['commands'] }` —— 老宿主没有命令面时插件照旧工作，只是没有斜杠命令。
 
+### 修复
+
+- **插件曾整体加载失败**：inject 一度写成 { required: ['tools'], optional: ['commands'] }，而 cordis 只认数组或「服务名→拦截配置」映射，于是它去等两个名叫 equired/optional 的服务，日志报 pending (waiting for services: required, optional)，工具和命令都没注册上。改回 inject = ['tools'] + 子上下文挂命令。
+
 ## 0.4.0
 
 ### 新增
