@@ -89,6 +89,8 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
 | `pngWidth` | `1600` | 逐页 PNG 宽度（320–3840） |
 | `footer` | `office-ppt · 由本机 LibreOffice 生成` | 默认页脚；填空字符串则不画 |
 | `pageNumbers` | `true` | 默认是否显示页码 |
+| `autoFit` | `shrink` | 自动排版：`shrink` 放不下就缩字号，`off` 保持原字号 |
+| `minFontSize` | `12` | 自动排版最多缩到多少磅 |
 | `timeoutMs` | `240000` | 单次调用超时（5 秒–15 分钟） |
 | `keepWarm` | `true` | 复用常驻 soffice 进程 |
 | `idleMs` | `60000` | 常驻进程空闲多久回收 |
@@ -96,6 +98,22 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
 任何字段都能被单次工具调用的同名参数覆盖（例如临时换个主题），面板里的值只是默认值。
 
 `soffice` / `python` 两项是为了替代以前的环境变量 `DSH_LO_SOFFICE` / `DSH_LO_PYTHON` —— 环境变量仍然有效，但正常情况下面板更好用。
+
+## 自动排版
+
+设置里的 `autoFit`（默认 `shrink`）解决「文字塞不下」这个最常见的排版事故：文案一长，字就冲出文本框盖住页脚。
+
+做法不是估字宽——估算是排版事故的最大来源——而是**让 LibreOffice 自己排一遍**：把文本框的 `TextAutoGrowHeight` 打开、宽度固定、高度设成极小值，再读回 `shape.Size.Height`，就得到这段文字在给定宽度下需要多高。放不下就用二分法缩小字号重新量，直到塞进去或触到 `minFontSize`。
+
+所以：
+
+- 文字放得下 → 一个字都不动；
+- 放不下 → 缩到刚好放下的最大字号（实测 10 行要点从 17pt 缩到 13.9pt）；
+- 缩到下限还放不下 → 保持下限字号并计入 `fitOverflow`，返回结果里会提示「缩到下限仍放不下，请缩短文案」。
+
+每次 `lo_build` 的结果里都有 `autoFit` / `fitAdjusted` / `fitOverflow` 三个字段，生成后的汇报也会直接告诉你调了几处、有没有溢出。
+
+> 为什么不用 LibreOffice 自带的 `TextFitToSize`：实测 `PROPORTIONAL` 会把文字**放大**到填满文本框（小框里出现一个字占半页的巨大字形），`AUTOFIT` 导出成 `<a:normAutofit>` 后同样依赖对方渲染器。只有「自己量、自己缩」是可控的。
 
 ## 常驻进程
 
@@ -189,6 +207,7 @@ node bin/lo-ppt.mjs convert 报告.docx --to pdf
 npm test            # 工具 schema 必须是合法 JSON Schema（不需要 LibreOffice）
 npm run test:config # 设置 schema / 归一化兜底 / volatile 容器（不需要 LibreOffice）
 npm run test:json   # 返回值必须过 DSH 的 lossless-JSON 校验
+npm run test:autofit # 12 项：自动排版真的缩字 / 真的不误报（需要 LibreOffice）
 npm run test:smoke  # 26 项：真跑四个工具、产物落盘校验
 ```
 

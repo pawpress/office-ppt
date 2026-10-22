@@ -4,7 +4,7 @@
  * 不启动 LibreOffice，纯逻辑，几百毫秒。
  */
 import assert from 'node:assert/strict';
-import { Config, DEFAULTS, resolveOptions, THEMES } from '../lib/config.js';
+import { AUTOFITS, Config, DEFAULTS, resolveOptions, THEMES } from '../lib/config.js';
 import { buildLoTools } from '../lib/tools.js';
 
 let passed = 0;
@@ -78,6 +78,30 @@ check('归一化：soffice/python 空串归一成 undefined', () => {
 check('归一化：keepWarm 只有显式 false 才关', () => {
   assert.equal(resolveOptions({ keepWarm: false }).keepWarm, false);
   assert.equal(resolveOptions({ keepWarm: 0 }).keepWarm, true);
+});
+
+check('自动排版：默认 shrink，只有显式 off 才关', () => {
+  assert.equal(DEFAULTS.autoFit, 'shrink');
+  assert.equal(resolveOptions({}).autoFit, 'shrink');
+  assert.equal(resolveOptions({ autoFit: 'off' }).autoFit, 'off');
+  assert.equal(resolveOptions({ autoFit: 'nonsense' }).autoFit, 'shrink');
+  assert.deepEqual(AUTOFITS, ['off', 'shrink']);
+});
+
+check('自动排版：minFontSize 被夹在 6..72', () => {
+  assert.equal(resolveOptions({}).minFontSize, DEFAULTS.minFontSize);
+  assert.equal(resolveOptions({ minFontSize: 1 }).minFontSize, 6);
+  assert.equal(resolveOptions({ minFontSize: 500 }).minFontSize, 72);
+  assert.equal(resolveOptions({ minFontSize: 'abc' }).minFontSize, DEFAULTS.minFontSize);
+});
+
+check('schema 接受 autoFit/minFontSize，拒绝非法枚举', () => {
+  const ok = Config['~standard'].validate({ autoFit: 'shrink', minFontSize: 10 });
+  assert.equal(ok.issues, undefined);
+  const bad = Config['~standard'].validate({ autoFit: 'stretch' });
+  assert.ok(Array.isArray(bad.issues) && bad.issues.length > 0);
+  const badSize = Config['~standard'].validate({ minFontSize: 2 });
+  assert.ok(Array.isArray(badSize.issues) && badSize.issues.length > 0);
 });
 
 check('归一化：volatile 容器（{get()}）能被读出来', () => {

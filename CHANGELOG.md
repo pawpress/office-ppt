@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+### 新增
+
+- **自动排版**（`autoFit` / `minFontSize` 设置项）：用 LibreOffice 自己的排版引擎量出文字在给定宽度下所需的高度，放不下就二分缩小字号。默认 `shrink`，`off` 可关闭。`lo_build` 结果新增 `autoFit` / `fitAdjusted` / `fitOverflow` 三个字段。
+- `test/autofit.test.mjs`（12 项）：验证短内容不缩、中等内容真的缩（17pt→13.9pt）、超量内容计入溢出、关掉时完全不干预、常驻 worker 路径同样可用。
+
+### 说明
+
+- 没有采用 LibreOffice 的 `TextFitToSize`：实测 `PROPORTIONAL` 会把文字放大到填满文本框，`AUTOFIT` 依赖对方渲染器解释 `<a:normAutofit>`，都不可控。
+- 也没有搬 ppt-master 的 `svg_text_metrics.py`：它依赖 Pillow，而 LibreOffice 自带的 python 没有 Pillow；用 UNO 自己量更准，且零新增依赖。
+
 ## 0.2.0
 
 ### 新增

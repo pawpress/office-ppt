@@ -1,0 +1,30 @@
+{
+  "command": "build",
+  "outDir": "D:\\dsh1\\dsh-lo-office\\test\\autofit",
+  "baseName": "fit",
+  "formats": ["pptx", "png"],
+  "pngWidth": 1200,
+  "autoFit": "shrink",
+  "minFontSize": 12,
+  "spec": {
+    "title": "自动排版验证",
+    "theme": "light",
+    "ratio": "16:9",
+    "footer": "autofit probe",
+    "slides": [
+      {
+        "layout": "bullets",
+        "kicker": "OVERFLOW TEST",
+        "title": "这一页故意塞进远超正常量的要点文字",
+        "bullets": [
+          "第一条：这是一段相当长的要点文字，用来测试自动排版能否在有限高度内把它放下，而不是直接溢出到页面外面去",
+          "第二条：同上，继续堆叠内容以制造高度压力，验证二分缩小字号是否生效",
+          "第三条：如果字号不缩小，这些文字一定会冲出内容区并盖住页脚",
+          "第四条：再补一条，确保总高度明显超过内容框",
+          "第五条：最后一条，用来观察缩到下限之后的溢出提示"
+        ]
+      },
+      { "layout": "cover", "title": "短标题", "subtitle": "这页不该被改动" }
+    ]
+  }
+}

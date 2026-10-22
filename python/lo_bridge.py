@@ -292,6 +292,90 @@ def add_rect(doc, page, x, y, w, h, fill, line=None, radius=0):
     return shape
 
 
+# ---------------------------------------------------------------- 自动排版
+#
+# 思路：不靠 PIL 估字宽，而是让 LibreOffice 自己排版一次——把 TextAutoGrowHeight
+# 打开、把宽度固定、把高度设成极小值，再读回 shape.Size.Height，就得到这段文字
+# 在给定宽度下需要多高。确认放不下后用二分法缩小字号重新量，直到塞进框里。
+#
+# 注意 TextFitToSize 那条路是错的：PROPORTIONAL / AUTOFIT 会把文字放大到填满
+# 文本框（实测小框里出现一个字半页大的字形），只能用来「填充」，不能用来「适配」。
+_FIT = {"mode": "off", "min": 12.0, "hits": 0}
+
+
+def set_fit(mode, min_size):
+    """由 build 请求里的 autoFit / minFontSize 设置本进程的排版策略。"""
+    _FIT["mode"] = "shrink" if str(mode or "").strip().lower() == "shrink" else "off"
+    try:
+        value = float(min_size)
+    except (TypeError, ValueError):
+        value = 12.0
+    _FIT["min"] = max(6.0, min(72.0, value))
+    _FIT["hits"] = 0
+    _FIT["overflow"] = 0
+
+
+def _set_char_height(shape, size):
+    """把整段文字的字号改成 size（含中文字号）。"""
+    try:
+        cursor = shape.createTextCursor()
+        cursor.gotoStart(False)
+        cursor.gotoEnd(True)
+        cursor.CharHeight = float(size)
+        cursor.CharHeightAsian = float(size)
+    except Exception:
+        pass
+
+
+def _needed_height(shape, w):
+    """量这段文字在宽度 w 下需要多高；量不出来返回 None。"""
+    from com.sun.star.awt import Size
+
+    try:
+        shape.TextAutoGrowHeight = True
+        # 关键：设完文字之后必须重设一次尺寸，否则读到的是上一次排版的结果。
+        shape.setSize(Size(int(w), 100))
+        return int(shape.Size.Height)
+    except Exception:
+        return None
+
+
+def fit_text(shape, w, h, size, min_size):
+    """二分出能塞进 (w, h) 的最大字号。
+
+    返回 (最终字号, 状态)，状态三选一：
+      ok       —— 原字号就放得下，没动过
+      shrunk   —— 缩小后才放下
+      overflow —— 缩到下限仍然放不下
+    """
+    needed = _needed_height(shape, w)
+    if needed is None or needed <= h:
+        return float(size), "ok"
+
+    low, high = float(min_size), float(size)
+    best = None
+    for _ in range(7):
+        mid = (low + high) / 2.0
+        _set_char_height(shape, mid)
+        needed = _needed_height(shape, w)
+        if needed is None:
+            _set_char_height(shape, size)
+            return float(size), "ok"
+        if needed <= h:
+            best = mid
+            low = mid
+        else:
+            high = mid
+        if high - low < 0.5:
+            break
+
+    if best is None:
+        _set_char_height(shape, min_size)
+        return float(min_size), "overflow"
+    _set_char_height(shape, best)
+    return best, "shrunk"
+
+
 def add_text(
     doc,
     page,
@@ -309,6 +393,7 @@ def add_text(
     spacing=0,
     margin=0,
     italic=False,
+    fit=True,
 ):
     from com.sun.star.awt import Point, Size
 
@@ -356,6 +441,21 @@ def add_text(
             cursor.ParaBottomMargin = int(spacing)
         except Exception:
             pass
+
+    # 自动排版：放不下就缩字号（量测与二分见 fit_text 上方注释）。
+    if fit and _FIT["mode"] == "shrink" and (text or "").strip():
+        _, status = fit_text(shape, w, h, size, _FIT["min"])
+        if status == "shrunk":
+            _FIT["hits"] += 1
+        elif status == "overflow":
+            _FIT["overflow"] += 1
+    try:
+        shape.TextAutoGrowHeight = False
+        from com.sun.star.awt import Size as _Size
+
+        shape.setSize(_Size(int(w), int(h)))
+    except Exception:
+        pass
     return shape
 
 
@@ -521,10 +621,10 @@ def layout_slide(doc, session, page, slide, spec, palette, geom, index, total):
     def footer():
         if spec.get("footer"):
             add_text(doc, page, M, H - M - 900, W - 2 * M - 1600, 800,
-                     spec["footer"], size=11, color=muted, font=font)
+                     spec["footer"], size=11, color=muted, font=font, fit=False)
         if spec.get("pageNumbers", True):
             add_text(doc, page, W - M - 1400, H - M - 900, 1400, 800,
-                     str(index), size=11, color=muted, font=font, align="right")
+                     str(index), size=11, color=muted, font=font, align="right", fit=False)
 
     if layout == "cover":
         add_rect(doc, page, 0, 0, int(W * 0.012), H, accent)
@@ -679,6 +779,8 @@ def cmd_build(req):
     if not slides:
         raise RuntimeError("spec.slides 为空：没有可生成的幻灯片")
 
+    set_fit(req.get("autoFit"), req.get("minFontSize"))
+
     theme = spec.get("theme") or "light"
     palette = dict(THEMES.get(theme, THEMES["light"]))
     for key, value in (spec.get("colors") or {}).items():
@@ -752,6 +854,9 @@ def cmd_build(req):
         "soffice": session.soffice,
         "theme": theme,
         "ratio": spec.get("ratio") or "16:9",
+        "autoFit": _FIT["mode"],
+        "fitAdjusted": _FIT["hits"],
+        "fitOverflow": _FIT.get("overflow", 0),
         "files": files,
         "bytes": sizes,
         "timings": timings,
