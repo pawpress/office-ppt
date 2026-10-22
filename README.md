@@ -4,7 +4,8 @@
 
 不是纯 JS 的 PPTX 写入器：字体、表格、母版、备注页、导出过滤器全走 Impress 那条路，产物和你在桌面上「另存为」得到的是同一种东西。
 
-> npm 包名是 `dsh-lo-office`（插件 id 也叫这个），仓库名是 **office-ppt**。装的时候两个名字都要用对。
+> npm 包名 `dsh-lo-office`（插件 id 同），仓库名 **office-ppt**，当前版本 **v0.5.1**。
+> 装法只要一行：`github:pawpress/office-ppt#v0.5.1` —— 详见[安装](#安装)。
 
 ```
 lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress 文档 ──▶ storeToURL
@@ -37,21 +38,42 @@ lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress �
 
 ## 安装
 
+**不需要发行版（Release）。** 装插件只要 git 仓库 + 可选的 tag。
+
 ### 方式一：插件管理器（推荐）
 
-DSH 的插件管理器接受 pnpm 的 git 规格，直接从仓库装：
+在 **设置 → 插件** 里粘贴下面任一行，或让助手调用 `plugin_manager` 的 `install_bundle`：
 
 ```
-github:pawpress/office-ppt
+github:pawpress/office-ppt            # 跟最新 main
+github:pawpress/office-ppt#v0.5.1     # 锁定版本（推荐）
 ```
 
-在 **设置 → 插件** 里粘贴这段，或在会话里让助手调用 `plugin_manager` 的 `install_bundle`。装完重启桌面端，日志里出现 `[dsh-lo-office] 已注册 5 个工具` 即可。
+两种规格都实测可用（pnpm 11.8，装上版本 0.5.1）。
 
-### 方式二：本地开发（改代码用）
+装完确认：
+
+```powershell
+Select-String -Path "$env:APPDATA\DSH Desktop\logs\host\dsh-*.log" -Pattern 'dsh-lo-office' | Select-Object -Last 3
+```
+
+期望看到 `已注册 5 个工具（…）、2 个斜杠命令`。
+
+> **Release 与 Tag 的区别**：装插件只需要 **Tag**（给 commit 打标记）。Release 是 Tag 加更新说明和附件，纯粹给人看，安装用不到。
+
+### 方式二：npm（等发布后可用）
+
+```bash
+dsh-lo-office
+```
+
+一行装完，有版本号和更新提示。目前还没发布到 npm。
+
+### 方式三：本地开发（改代码用）
 
 ```
 # 1) 把仓库链进 profile 的 node_modules
-cmd /c mklink /J D:\dsh1\.dsh\profiles\desktop\node_modules\dsh-lo-office D:\dsh1\dsh-lo-office
+cmd /c mklink /J <profile>\node_modules\dsh-lo-office <仓库路径>
 ```
 
 ```jsonc
@@ -62,7 +84,7 @@ cmd /c mklink /J D:\dsh1\.dsh\profiles\desktop\node_modules\dsh-lo-office D:\dsh
 }
 ```
 
-bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改 `cordis.yml`**：
+bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改 `cordis.yml`**（它是启动时由 bundles 组合出来的生成物，手改会被覆盖）：
 
 ```yaml
 - insert:
@@ -71,10 +93,9 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
       config: {}
 ```
 
-> ⚠️ 一定要用编辑器或 `[System.IO.File]::WriteAllText` + `UTF8Encoding($false)` 改配置。PowerShell 5.1 的 `Set-Content -Encoding UTF8` 会写 BOM，YAML 解析会挂。
+> ⚠️ 改配置一律用编辑器或 `[System.IO.File]::WriteAllText` + `UTF8Encoding($false)`。PowerShell 5.1 的 `Set-Content -Encoding UTF8` 会写 BOM，YAML 解析会挂。
 >
-> ⚠️ 插件源码改动**不会热重载**（DSH 的 HMR 默认只监听 profile manifest 和 patch，不监听插件源码）。改完要重启桌面端。
-
+> ⚠️ 插件源码改动由 HMR 热重载**代码**，但不会刷新斜杠命令的 UI 列表 —— 那要刷新页面或重启 Desktop。
 ## 斜杠命令
 
 在输入框敲 `/` 就能用的两条命令（不经过模型，不消耗 token）：
