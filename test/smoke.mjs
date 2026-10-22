@@ -44,7 +44,11 @@ function fakeContext() {
 const { ctx, tools } = fakeContext();
 apply(ctx, {});
 
-check('inject 声明了 tools', Array.isArray(inject) && inject.includes('tools'), JSON.stringify(inject));
+// inject 支持两种形态：数组，或 { required, optional }。后者用来让 commands 成为可选依赖。
+const injectRequired = Array.isArray(inject) ? inject : (inject?.required ?? []);
+const injectOptional = Array.isArray(inject) ? [] : (inject?.optional ?? []);
+check('inject 声明了 tools', injectRequired.includes('tools'), JSON.stringify(inject));
+check('inject 把 commands 列为可选', injectOptional.includes('commands'), JSON.stringify(inject));
 check('插件名正确', name === 'dsh-lo-office', name);
 check('注册了 5 个工具', tools.size === 5, [...tools.keys()].join(', '));
 

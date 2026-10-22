@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+### 新增
+
+- **斜杠命令**（你在输入框敲，不经过模型、不消耗 token）：
+  - `/ppt-config` —— 查看配置；`theme=swiss autoFit=off` 这样改；`reset` 恢复出厂
+  - `/ppt-status` —— 探测 LibreOffice 与 UNO 桥是否可用
+- `lib/commands.js`：命令注册与 `key=value` 解析（支持引号包住带空格的值、逗号数组）。
+- `test/commands.test.mjs`（19 项）：解析器边界、注册去重、写盘行为、非法值拒绝、disposer 注销。
+
+### 变更
+
+- `inject` 从 `['tools']` 改成 `{ required: ['tools'], optional: ['commands'] }` —— 老宿主没有命令面时插件照旧工作，只是没有斜杠命令。
+
 ## 0.4.0
 
 ### 新增

@@ -45,6 +45,9 @@ jobs:
       - name: lo_config contract
         run: node test/config-tool.test.mjs
 
+      - name: Slash commands
+        run: node test/commands.test.mjs
+
   # 端到端：装真 LibreOffice，跑真实生成与 lossless-JSON 校验。
   integration:
     name: integration (libreoffice)

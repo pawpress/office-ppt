@@ -75,24 +75,33 @@ bundle 条目由本仓库自带的 `cordis.patch.yml` 注入，**不需要手改
 >
 > ⚠️ 插件源码改动**不会热重载**（DSH 的 HMR 默认只监听 profile manifest 和 patch，不监听插件源码）。改完要重启桌面端。
 
-## 配置：用命令，不用设置页
+## 斜杠命令
 
-**DSH 桌面端（0.1.7）不会给第三方插件渲染设置表单。** 这一点我踩过坑，写清楚免得你也浪费时间：
+在输入框敲 `/` 就能用的两条命令（不经过模型，不消耗 token）：
+
+| 命令 | 作用 |
+|---|---|
+| `/ppt-config` | 查看配置 |
+| `/ppt-config theme=swiss` | 改一项 |
+| `/ppt-config theme=swiss autoFit=off pngWidth=2000` | 改多项 |
+| `/ppt-config formats=pptx,pdf` | 数组用逗号 |
+| `/ppt-config footer="由 LibreOffice 生成"` | 带空格的值用引号 |
+| `/ppt-config reset` | 恢复出厂 |
+| `/ppt-status` | 探测 LibreOffice 是否可用 |
+
+改动写进 profile 的 `cordis.patch.yml`，**重启 Desktop 后生效**；要当场生效可以用 `lo_config` 工具（见下）。
+
+### 为什么不是设置页
+
+DSH 桌面端（0.1.7）**不会**给第三方插件渲染设置表单：
 
 - `dsh-settings` 里写着「每个表单报告 `autoGenerate`…**目前没有已发布的客户端这样做**」
 - 侧边栏里像「演示文稿」那种条目，是 `dsh-ppt` **自己写 React 组件**注册进 `settings.section` 的结果，不是自动生成
 - 插件的 `Config` schema 只负责**装载时校验**，不产出 UI
 
-所以改配置走 `lo_config` 工具：
+所以配置面分成两条：给用户的是斜杠命令，给模型的是 `lo_config` 工具。两者写的是同一份 `cordis.patch.yml`。
 
-```
-lo_config { action: "show" }
-lo_config { action: "set", key: "theme", value: "swiss" }
-lo_config { action: "set", changes: { autoFit: "off", minFontSize: 10 } }
-lo_config { action: "reset" }
-```
-
-它做两件事：**当场改内存里的配置**（下一条工具调用就生效），并把非默认值写进 profile 的 `cordis.patch.yml`（重启后依然有效）。只写和出厂默认不同的字段，条目保持干净；实测改它时其余 16 个条目逐字节不变。
+### 可配置项
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -236,9 +245,10 @@ npm test            # 工具 schema 必须是合法 JSON Schema（不需要 Libr
 npm run test:config # 设置 schema / 归一化兜底 / volatile 容器（不需要 LibreOffice）
 npm run test:store  # 14 项：lo_config 的 YAML 解析 / 渲染 / 替换 / 字段校验（不需要 LibreOffice）
 npm run test:config-tool # 19 项：lo_config 的 show/set/reset 契约与写盘行为（不需要 LibreOffice）
+npm run test:commands # 19 项：斜杠命令的解析 / 注册 / 写盘（不需要 LibreOffice）
 npm run test:json   # 返回值必须过 DSH 的 lossless-JSON 校验
 npm run test:autofit # 12 项：自动排版真的缩字 / 真的不误报（需要 LibreOffice）
-npm run test:smoke  # 27 项：真跑各工具、产物落盘校验
+npm run test:smoke  # 28 项：真跑各工具、产物落盘校验
 ```
 
 `check-json.mjs` 优先 import 桌面端自带的 `@deepseek-ai/dsh-util-values` 校验器（`DSH_APP_DIR` 可覆盖路径）；没有桌面端的机器（CI）自动退回同规则的本地镜像。
