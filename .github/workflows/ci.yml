@@ -29,8 +29,15 @@ jobs:
         with:
           node-version: 22
 
+      # 没有 lockfile：装依赖只为拿到 @deepseek-ai/schemastery（设置 schema 用它）。
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
       - name: Tool schemas
         run: node --test test/tool-schema.test.mjs
+
+      - name: Settings schema
+        run: node test/config.test.mjs
 
   # 端到端：装真 LibreOffice，跑真实生成与 lossless-JSON 校验。
   integration:
@@ -42,6 +49,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
 
       - name: Install LibreOffice and UNO bindings
         run: |

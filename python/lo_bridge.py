@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 """dsh-lo-office UNO 桥。
 
-一个进程一次调用：从 stdin 读一个 JSON 请求，向 stdout 写一个 JSON 响应。
+两种跑法：
+
+  一次性（默认）：从 stdin 读一个 JSON 请求，向 stdout 写一个 JSON 响应。
+  常驻（--serve）：从 stdin 逐行读 JSON，逐行写 JSON；soffice 与 uno 连接都留着复用，
+                   省掉每次约 0.5 秒的冷启动。响应里带请求的 id 便于配对。
 
 命令：
     probe    探测 LibreOffice / python / UNO 是否可用
@@ -17,6 +21,8 @@
     0x81a(Error Area:Io Class:Parameter Code:26)。
 """
 
+import atexit
+import contextlib
 import json
 import os
 import random
@@ -692,7 +698,7 @@ def cmd_build(req):
     started = time.time()
     files = {}
 
-    with Session(req.get("soffice"), float(req.get("timeout") or 120)) as session:
+    with session_scope(req) as session:
         timings["connect"] = round(time.time() - started, 2)
         doc = session.new_presentation()
         try:
@@ -770,7 +776,7 @@ def cmd_render(req):
     files = {}
     timings = {}
 
-    with Session(req.get("soffice"), float(req.get("timeout") or 120)) as session:
+    with session_scope(req) as session:
         timings["connect"] = round(time.time() - started, 2)
         doc = session.open(source)
         try:
@@ -935,7 +941,89 @@ COMMANDS = {
 }
 
 
+# ---------------------------------------------------------------- 常驻模式
+
+
+_SERVE_SESSION = None
+
+
+def _serve_session(req):
+    """常驻模式共享的 Session：第一次用到才起 soffice。"""
+    global _SERVE_SESSION
+    if _SERVE_SESSION is None:
+        session = Session(req.get("soffice"), float(req.get("timeout") or 120))
+        session.__enter__()
+        _SERVE_SESSION = session
+    return _SERVE_SESSION
+
+
+def _drop_serve_session():
+    """丢掉常驻 Session。UNO 连接一旦出过错就不能再信它。"""
+    global _SERVE_SESSION
+    session, _SERVE_SESSION = _SERVE_SESSION, None
+    if session is not None:
+        try:
+            session.__exit__(None, None, None)
+        except Exception:
+            pass
+
+
+@contextlib.contextmanager
+def session_scope(req):
+    """常驻模式复用同一个 soffice；一次性模式照旧一次一进程。"""
+    if not req.get("_serve"):
+        with Session(req.get("soffice"), float(req.get("timeout") or 120)) as session:
+            yield session
+        return
+    yield _serve_session(req)
+
+
+atexit.register(_drop_serve_session)
+
+
+def serve():
+    """逐行读请求、逐行写响应，直到 stdin 关闭或收到 shutdown。"""
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        req_id = None
+        try:
+            req = json.loads(line)
+            if not isinstance(req, dict):
+                raise ValueError("请求必须是 JSON 对象")
+            req_id = req.get("id")
+            command = req.get("command") or "probe"
+            if command == "shutdown":
+                emit({"id": req_id, "ok": True, "shutdown": True})
+                break
+            handler = COMMANDS.get(command)
+            if handler is None:
+                raise ValueError(
+                    "未知命令：%s（可用：%s）" % (command, ", ".join(COMMANDS))
+                )
+            req["_serve"] = True
+            result = handler(req)
+            if isinstance(result, dict):
+                result["id"] = req_id
+            emit(result)
+        except Exception as error:
+            # 出错后不信任这条 UNO 连接，下一轮重建
+            _drop_serve_session()
+            emit({
+                "id": req_id,
+                "ok": False,
+                "error": "%s: %s" % (type(error).__name__, error),
+                "trace": traceback.format_exc()[-2000:],
+            })
+    _drop_serve_session()
+
+
 def main():
+    if "--serve" in sys.argv[1:]:
+        serve()
+        return
+
     raw = sys.stdin.read()
     if not raw.strip():
         emit({"ok": False, "error": "stdin 为空：需要一段 JSON 请求"})
