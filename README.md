@@ -42,10 +42,10 @@ lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress �
 DSH 的插件管理器接受 pnpm 的 git 规格，直接从仓库装：
 
 ```
-github:OWNER/office-ppt
+github:pawpress/office-ppt
 ```
 
-在 **设置 → 插件** 里粘贴这段（把 `OWNER` 换成仓库所属账号），或在会话里让助手调用 `plugin_manager` 的 `install_bundle`。装完重启桌面端，日志里出现 `[dsh-lo-office] 已注册 4 个工具` 即可。
+在 **设置 → 插件** 里粘贴这段，或在会话里让助手调用 `plugin_manager` 的 `install_bundle`。装完重启桌面端，日志里出现 `[dsh-lo-office] 已注册 4 个工具` 即可。
 
 ### 方式二：本地开发（改代码用）
 
@@ -251,22 +251,19 @@ CI 见 [.github/workflows/ci.yml](.github/workflows/ci.yml)：三平台跑 schem
 3. 生成慢或超时 → 检查是不是有别的 soffice 实例占着 socket；插件已经随机端口 + 独立 profile，正常不会撞。
 4. 桌面端日志：`%APPDATA%\DSH Desktop\logs\host\dsh-<日期>.log`，搜 `dsh-lo-office`。
 
-## 发布前必改
+## 仓库信息
 
-仓库里所有需要替换的地方都写成占位符 `OWNER`，推之前一次性改掉：
+- 仓库：<https://github.com/pawpress/office-ppt>
+- npm 包名 / 插件 id：`dsh-lo-office`
+- 安装规格：`github:pawpress/office-ppt`
 
-```bash
-grep -rn "OWNER" README.md package.json
-```
-
-- `README.md` 的安装规格 `github:OWNER/office-ppt`
-- `package.json` 的 `repository` / `homepage` / `bugs`
-
-然后：
+克隆并推送到自己的 fork：
 
 ```bash
-git remote add origin https://github.com/OWNER/office-ppt.git
-git push -u origin main
+git clone https://github.com/pawpress/office-ppt.git
+cd office-ppt
+npm install          # 只为拿 @deepseek-ai/schemastery（设置 schema）
+npm run test:all     # 需要本机装 LibreOffice
 ```
 
 ## 许可

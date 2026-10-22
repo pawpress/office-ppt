@@ -1,6 +1,6 @@
 {
   "name": "dsh-lo-office",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Drive the locally installed LibreOffice over UNO from DeepSeek Harness: build editable PPTX/ODP decks and render PPTX to PDF or per-slide PNG, using real Impress instead of a pure-JS writer.",
   "keywords": [
     "dsh",
@@ -18,11 +18,11 @@
   "author": "dsh-lo-office contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OWNER/office-ppt.git"
+    "url": "git+https://github.com/pawpress/office-ppt.git"
   },
-  "homepage": "https://github.com/OWNER/office-ppt#readme",
+  "homepage": "https://github.com/pawpress/office-ppt#readme",
   "bugs": {
-    "url": "https://github.com/OWNER/office-ppt/issues"
+    "url": "https://github.com/pawpress/office-ppt/issues"
   },
   "type": "module",
   "main": "lib/index.js",
