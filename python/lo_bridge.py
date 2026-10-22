@@ -946,10 +946,25 @@ def cmd_convert(req):
     proc = subprocess.run(args, capture_output=True, text=True, timeout=float(req.get("timeout") or 180),
                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     stem = os.path.splitext(os.path.basename(source))[0]
+    # 只认这次真正产出的文件：扩展名必须匹配目标格式，且 mtime 不早于本次开始。
+    # 以前只判 name.startswith(stem)，会把目录里同名的旧文件（.pptx / -01.png）
+    # 一起列进结果，看起来像"一次转出了三个文件"。
+    want_ext = "." + str(target).split(":")[0].split("-")[0].lower()
     produced = []
-    for name in os.listdir(out_dir):
-        if name.startswith(stem) and os.path.isfile(os.path.join(out_dir, name)):
-            produced.append(os.path.join(out_dir, name))
+    for name in sorted(os.listdir(out_dir)):
+        path = os.path.join(out_dir, name)
+        if not os.path.isfile(path):
+            continue
+        if os.path.splitext(name)[1].lower() != want_ext:
+            continue
+        if not name.startswith(stem):
+            continue
+        try:
+            if os.path.getmtime(path) < started - 1:
+                continue
+        except OSError:
+            continue
+        produced.append(path)
     ok = proc.returncode == 0 and produced
     return {
         "ok": bool(ok),
