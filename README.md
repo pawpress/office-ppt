@@ -15,7 +15,7 @@ lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress �
                                                                       └─ png × N
 ```
 
-**English** — A DeepSeek Harness plugin that builds presentations by driving the *installed* LibreOffice over UNO: it opens a real Impress document, draws real shapes, and lets LibreOffice export PPTX / ODP / PDF / per-slide PNG. Not a pure-JS OOXML writer — so fonts, tables, master pages, notes and the export filters are all LibreOffice's own. Four tools: `lo_probe`, `lo_build`, `lo_render`, `lo_convert`. Requires LibreOffice (verified on 26.8.1.1); the bundled Python is used, so no system Python is needed. Ships a settings panel (paths, theme, ratio, formats, timeouts) and keeps one warm soffice process between calls. Package name `dsh-lo-office`, repository `office-ppt`. [Changelog](CHANGELOG.md) · [MIT](LICENSE)
+**English** — A DeepSeek Harness plugin that builds presentations by driving the *installed* LibreOffice over UNO: it opens a real Impress document, draws real shapes, and lets LibreOffice export PPTX / ODP / PDF / per-slide PNG. Not a pure-JS OOXML writer — so fonts, tables, master pages, notes and the export filters are all LibreOffice's own. Five tools: `lo_probe`, `lo_build`, `lo_render`, `lo_convert`, `lo_config`. Requires LibreOffice (verified on 26.8.1.1); the bundled Python is used, so no system Python is needed. Ships a settings panel (paths, theme, ratio, formats, timeouts) and keeps one warm soffice process between calls. Package name `dsh-lo-office`, repository `office-ppt`. [Changelog](CHANGELOG.md) · [MIT](LICENSE)
 
 ![封面](test/out/sample-01.png)
 
