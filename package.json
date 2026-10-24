@@ -1,6 +1,6 @@
 {
   "name": "dsh-lo-office",
-  "version": "0.5.1",
+  "version": "0.1.0",
   "description": "Drive the locally installed LibreOffice over UNO from DeepSeek Harness: build editable PPTX/ODP decks and render PPTX to PDF or per-slide PNG, using real Impress instead of a pure-JS writer.",
   "keywords": [
     "dsh",

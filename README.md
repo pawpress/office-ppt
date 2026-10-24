@@ -128,7 +128,7 @@ DSH 桌面端（0.1.7）**不会**给第三方插件渲染设置表单：
 |---|---|---|
 | `soffice` | 空（自动探测） | `soffice.exe` 完整路径 |
 | `python` | 空（用自带的） | 带 `uno` 模块的 python |
-| `theme` | `light` | `light` / `dark` / `slate` / `warm` / `swiss` |
+| `theme` | `light` | `light` / `dark` / `slate` / `warm` / `swiss` / `atelier` / `noir` |
 | `ratio` | `16:9` | `16:9` / `4:3` |
 | `formats` | `pptx,pdf,png` | 默认导出格式，可加 `odp` |
 | `pngWidth` | `1600` | 逐页 PNG 宽度（320–3840） |
@@ -187,7 +187,7 @@ DSH 桌面端（0.1.7）**不会**给第三方插件渲染设置表单：
 |---|---|
 | `title` | 必填。封面与默认文件名 |
 | `slides` | 必填。幻灯片数组，见下 |
-| `theme` | `light`（默认）/ `dark` / `slate` / `warm` / `swiss` |
+| `theme` | `light`（默认）/ `dark` / `slate` / `warm` / `swiss` / `atelier` / `noir` |
 | `ratio` | `16:9`（默认）/ `4:3` |
 | `footer` | 页脚文字，默认取设置里的页脚（出厂值 `office-ppt · 由本机 LibreOffice 生成`） |
 | `pageNumbers` | 是否显示页码，默认 `true` |
@@ -197,9 +197,11 @@ DSH 桌面端（0.1.7）**不会**给第三方插件渲染设置表单：
 | `pngWidth` | 逐页 PNG 宽度，默认 1600 |
 | `overwrite` | 覆盖同名旧文件，默认 `true` |
 
-每页字段：`layout`、`title`、`subtitle`、`kicker`（标题上方小字）、`text`、`bullets`、`rows`（首行为表头的二维数组）、`image`（绝对路径）、`notes`（讲者备注）。
+每页字段：`layout`、`title`、`subtitle`、`kicker`（标题上方小字）、`text`、`bullets`、`rows`（首行为表头的二维数组）、`image`（绝对路径）、`caption`（图注，图文版式与整页图都画）、`imageSide`（`left` / `right`，覆盖版式默认的一侧）、`notes`（讲者备注）。
 
-版式：`cover` / `section` / `bullets` / `statement` / `quote` / `table` / `image` / `image-left` / `image-right` / `closing`。缺省 `bullets`。
+版式：`cover` / `section` / `bullets` / `editorial` / `statement` / `quote` / `table` / `kpi` / `index` / `hero` / `image` / `image-left` / `image-right` / `closing`。缺省 `bullets`。
+
+其中 `editorial` / `kpi` / `index` / `hero` 是配合 `atelier` / `noir` 的高级版式，只在高级主题下生效；基础主题下会按 `bullets` 渲染，并在结果里给出 `warnings` 提示。`hero` 的配图是可选的——不给 `image` 就用深色渐变底，不会画占位框。
 
 ```json
 {
