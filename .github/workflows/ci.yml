@@ -82,6 +82,10 @@ jobs:
       - name: Auto-layout (font fitting)
         run: node test/autofit.test.mjs
 
+      # 像素级回归：cover=True 必须真的裁切出血，且带图版式必须画主题底色。
+      - name: Cover crop and theme background
+        run: node test/cover-crop.test.mjs
+
       - name: Smoke test
         run: node test/smoke.mjs
 

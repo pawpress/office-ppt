@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+### 修复
+
+- **满幅出血图 `cover=True` 从未真正裁切过**：`add_image()` 用 `createUnoStruct("com.sun.star.drawing.RectanglePoint")` 建裁切结构，可 `RectanglePoint` 是枚举，`createUnoStruct` 必然抛异常；异常又被 `except Exception: pass` 吞掉，于是每张「满幅出血图」都静默退化成等比缩放居中——页面上下来两条白边，一个警告都没有。现在改用 `com.sun.star.text.GraphicCrop`（STRUCT，四条边各一个裁切量），并按图片自然尺寸 `Size100thMM` 换算裁切量（原来的注释「单位是 1/1000 百分比、满值 100000」是错的，按它算出来的值要么把图裁空、要么一点没裁）。
+- **裁切失败不再静默**：`except` 分支现在走 `warn()`，退回等比缩放的同时把原因写进 `warnings`，随 `lo_build` / `lo_render` 的「⚠️ N 处需要留意」一起报到用户眼前。
+- **`atelier` / `noir` 带图版式整页变纯白**：`layout_lux()` 的 `hero` 分支和 `image-left` / `image-right` 分支都没铺主题底色，只有「没给图」的分支才画。结果一份米色底的 deck 里，凡是有图的页都是刺眼的纯白。两处都补上 `add_rect(0, 0, W, H, bg)` 打底。
+- **高级主题的副标题压住页脚**：`hero` 的副标题框落在 0.895H、框高 `H*0.09`，底沿到 0.985H，正压在页脚行（0.90H + 420）上，只要写了 `subtitle` 文字就和页码叠在一起。副标题上移到 0.885H、框高压到 650 单位；标题框同步从 0.72H 抬到 0.67H，避免和副标题抢位置。
+
+### 新增
+
+- **`test/cover-crop.test.mjs`：像素级回归测试**（`npm run test:cover`，已接入 `test:all` 与 CI 的 `integration` job）。用例生成一张上红下蓝的 3:1 PNG，分别以 `hero` 和 `image-left` 版式构建，再逐像素解码导出的 PNG 断言：满幅页四角和左右边缘都必须是图片内容（纯白或主题底色一律判失败，直接点名「图没铺到这里」/「图被等比居中，没有裁切出血」），且 `image-left` 未放图那半边必须是主题底色而不是白。这两个 bug 都只在像素上看得出来，`RectanglePoint` 那次甚至没留下任何警告——所以测试跑的是真渲染、真解码。
+- 该测试的反向对照已验证：把 `python/lo_bridge.py` 的修复 stash 掉再跑，`hero` 四角与左右边缘、`image-left` 两处底色共 6 条断言转红。
+
 ## 0.1.1
 
 ### 修复

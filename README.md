@@ -4,8 +4,8 @@
 
 不是纯 JS 的 PPTX 写入器：字体、表格、母版、备注页、导出过滤器全走 Impress 那条路，产物和你在桌面上「另存为」得到的是同一种东西。
 
-> npm 包名 `dsh-lo-office`（插件 id 同），仓库名 **office-ppt**，当前版本 **v0.1.1**。
-> 装法只要一行：`github:pawpress/office-ppt#v0.1.1` —— 详见[安装](#安装)。
+> npm 包名 `dsh-lo-office`（插件 id 同），仓库名 **office-ppt**，当前版本 **v0.2.0**。
+> 装法只要一行：`github:pawpress/office-ppt#v0.2.0` —— 详见[安装](#安装)。
 
 ```
 lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress 文档 ──▶ storeToURL
@@ -46,10 +46,10 @@ lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress �
 
 ```
 github:pawpress/office-ppt            # 跟最新 main
-github:pawpress/office-ppt#v0.1.1     # 锁定版本（推荐）
+github:pawpress/office-ppt#v0.2.0     # 锁定版本（推荐）
 ```
 
-两种规格都实测可用（pnpm 11.8，装上版本 0.1.1）。
+两种规格都实测可用（pnpm 11.8，装上版本 0.2.0）。
 
 装完确认：
 

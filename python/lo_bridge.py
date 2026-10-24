@@ -733,24 +733,32 @@ def add_image(doc, session, page, x, y, w, h, path, cover=False):
     # cover：铺满框后按比例裁掉溢出部分（满幅出血图必须裁，否则会盖住正文）
     if cover and nw > 0 and nh > 0 and w > 0 and h > 0:
         try:
+            # GraphicCrop 是 com.sun.star.text.GraphicCrop（STRUCT，四个边各一个
+            # 裁切量），单位 1/100 mm，基准是图片的物理自然尺寸 Size100thMM。
+            # 曾经写成 RectanglePoint（那是 ENUM，createUnoStruct 必失败）并套用
+            # 「1/1000 百分比、满值 100000」的换算，结果要么整张裁空、要么完全没裁，
+            # 而且是静默失败——满幅出血图退化成信箱状，一路发到线上都没人发现。
+            phys = graphic.getPropertyValue("Size100thMM")
+            pw, ph = int(phys.Width), int(phys.Height)
+            if pw <= 0 or ph <= 0:  # 极端情况按 96 DPI 兜底
+                pw, ph = int(nw * 26.4583), int(nh * 26.4583)
             box_ratio = float(w) / float(h)
-            img_ratio = float(nw) / float(nh)
-            crop = uno.createUnoStruct("com.sun.star.drawing.RectanglePoint")
-            crop.Left = crop.Right = crop.Top = crop.Bottom = 0
+            img_ratio = float(pw) / float(ph)
+            left = top = 0
             if img_ratio > box_ratio:
-                excess = 1.0 - (box_ratio / img_ratio)
-                # GraphicCrop 单位是 1/1000 百分比（满值 100000），写小 10 倍
-                # 就等于没裁，图片会被缩成信箱状留在框中间
-                crop.Left = crop.Right = int(excess * 100000 / 2)
+                left = int((1.0 - box_ratio / img_ratio) * pw / 2)
             elif img_ratio < box_ratio:
-                excess = 1.0 - (img_ratio / box_ratio)
-                crop.Top = crop.Bottom = int(excess * 100000 / 2)
+                top = int((1.0 - img_ratio / box_ratio) * ph / 2)
+            crop = uno.createUnoStruct("com.sun.star.text.GraphicCrop")
+            crop.Left = crop.Right = left
+            crop.Top = crop.Bottom = top
             shape.GraphicCrop = crop
             shape.setPosition(Point(int(x), int(y)))
             shape.setSize(Size(int(w), int(h)))
             return shape
-        except Exception:
-            pass
+        except Exception as exc:
+            # 裁切挂了不能让整页崩，但也不许装作没事：退回等比缩放并记账
+            warn("cover 裁切失败，该图已退回等比缩放居中：%s" % exc)
 
     # 等比缩放后居中放进 (x,y,w,h) 的框里
     if nw > 0 and nh > 0:
@@ -1090,6 +1098,10 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
         # 图是可选的：hero 的语义是「整页压一句主张」，配图只是背景的一种。
         # 以前这里无条件 add_image，没给图就会画出「缺图」灰框并报一条
         # 「图片不存在（空路径）」的警告 —— 用户明明没写图，却被提示图丢了。
+        # 底色必须先铺：底色原先只在「没给图」的分支里出现，一给图整页就退回
+        # 纯白，主题色全丢。而且步骤条的透明度语法在不同 LO 版本上未必可靠，
+        # 少了底色兜底，整页就会白得刺眼。
+        add_rect(doc, page, 0, 0, W, H, bg)
         if image:
             add_image(doc, session, page, 0, 0, W, H, image, cover=True)
         else:
@@ -1101,11 +1113,14 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
             top = H - band * (steps - i)
             tr = int(94 - 88 * (i / float(steps - 1)))
             add_rect(doc, page, 0, top, W, band + 2, 0x0A0A0C, transparency=tr)
-        label(MX, H - int(H * 0.33), kicker or "feature", accent)
-        T(doc, page, MX, H - int(H * 0.28), int(W * 0.60), int(H * 0.22), title,
+        label(MX, H - int(H * 0.36), kicker or "feature", accent)
+        T(doc, page, MX, H - int(H * 0.33), int(W * 0.60), int(H * 0.17), title,
           size=44, color=paper, font=SERIF, bold=True)
         if subtitle:
-            T(doc, page, MX, H - int(H * 0.105), int(W * 0.55), int(H * 0.09), subtitle,
+            # 副标题的框原来给到 H*0.09 高、落在 0.895H，底沿压到 0.985H，
+            # 正压在页脚（0.90H + 420）上：只要写了副标题，字就和页码叠在一起。
+            # 收到页脚之上，并留出 400 单位的呼吸位。
+            T(doc, page, MX, H - int(H * 0.115), int(W * 0.55), 650, subtitle,
               size=15, color=0xD6CFC2, font=SANS)
         footer(0xCFC8BC)
 
@@ -1122,6 +1137,9 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
                 T(doc, page, MX, H - MY - 420, CW, 500, caption, size=9.5,
                   color=muted, font=LATIN, kerning=140, fit=False)
         else:
+            # 单侧满幅图的版式同样要铺主题底色：图片只占一半宽度，
+            # 另一半不铺就是纯白，和整份 deck 的底色断开。
+            add_rect(doc, page, 0, 0, W, H, bg)
             half = int(W * 0.46)
             if side == "left":
                 add_image(doc, session, page, 0, 0, half, H, image, cover=True)
