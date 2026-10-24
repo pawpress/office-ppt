@@ -4,8 +4,8 @@
 
 不是纯 JS 的 PPTX 写入器：字体、表格、母版、备注页、导出过滤器全走 Impress 那条路，产物和你在桌面上「另存为」得到的是同一种东西。
 
-> npm 包名 `dsh-lo-office`（插件 id 同），仓库名 **office-ppt**，当前版本 **v0.5.1**。
-> 装法只要一行：`github:pawpress/office-ppt#v0.5.1` —— 详见[安装](#安装)。
+> npm 包名 `dsh-lo-office`（插件 id 同），仓库名 **office-ppt**，当前版本 **v0.1.1**。
+> 装法只要一行：`github:pawpress/office-ppt#v0.1.1` —— 详见[安装](#安装)。
 
 ```
 lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress 文档 ──▶ storeToURL
@@ -46,10 +46,10 @@ lo_build ──▶ python/lo_bridge.py ──▶ UNO socket ──▶ Impress �
 
 ```
 github:pawpress/office-ppt            # 跟最新 main
-github:pawpress/office-ppt#v0.5.1     # 锁定版本（推荐）
+github:pawpress/office-ppt#v0.1.1     # 锁定版本（推荐）
 ```
 
-两种规格都实测可用（pnpm 11.8，装上版本 0.5.1）。
+两种规格都实测可用（pnpm 11.8，装上版本 0.1.1）。
 
 装完确认：
 
@@ -202,6 +202,13 @@ DSH 桌面端（0.1.7）**不会**给第三方插件渲染设置表单：
 版式：`cover` / `section` / `bullets` / `editorial` / `statement` / `quote` / `table` / `kpi` / `index` / `hero` / `image` / `image-left` / `image-right` / `closing`。缺省 `bullets`。
 
 其中 `editorial` / `kpi` / `index` / `hero` 是配合 `atelier` / `noir` 的高级版式，只在高级主题下生效；基础主题下会按 `bullets` 渲染，并在结果里给出 `warnings` 提示。`hero` 的配图是可选的——不给 `image` 就用深色渐变底，不会画占位框。
+
+`kpi` 的数据可以给两种写法，取前 4 组：
+
+- `rows`：两列二维数组，第一列是大数字，第二列是说明。`[["42%", "效率提升"], ["3.1x", "发布频率"]]`
+- `bullets`：每条写成 `数值｜标签`，全角 `｜` 和半角 `|` 都认。`["42%｜效率提升", "3.1x|发布频率"]`
+
+两种都不给时，本页只画标题，并在 `warnings` 里明确说明——不会安静地留一张空白页。
 
 ```json
 {

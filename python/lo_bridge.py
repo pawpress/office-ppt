@@ -613,6 +613,90 @@ def add_text(
     return shape
 
 
+def _measure_height(shape, w):
+    """量出这段文字在宽度 w 下需要的真实高度。
+
+    和 _needed_height 的区别：这个函数不留下 TextAutoGrowHeight=True 的副作用，
+    调用方拿到数字之后还能继续 setPosition / setSize 做垂直分配。
+    """
+    from com.sun.star.awt import Size
+
+    try:
+        shape.TextAutoGrowHeight = True
+        shape.setSize(Size(int(w), 100))
+        height = int(shape.Size.Height)
+    except Exception:
+        height = None
+    try:
+        shape.TextAutoGrowHeight = False
+    except Exception:
+        pass
+    return height
+
+
+# 垂直分配的眼校系数：内容块的上下留白按 0.46 : 0.54 分。
+# 正中对齐（0.5）在纸面上看着像内容往下沉，压到 0.46 才「坐」得住。
+BALANCE_BIAS = 0.46
+# 内容块占正文带的理想比例。留太多空白是模板感，占满又是压迫感。
+BAND_FILL = 0.72
+
+
+def _distribute(shape, w, band_top, band_h, base_spacing, count,
+                fill=BAND_FILL, max_grow=1.9, bias=BALANCE_BIAS):
+    """把已经创建好的文字块在正文带里做垂直分配。
+
+    两步，都靠 LibreOffice 自己量：
+      1. 块太矮（要点少）就把段间距撑开，让块长到正文带的 fill 比例；
+      2. 撑完之后把整块挪到略高于几何中心的位置。
+
+    以前这两步都没有，块永远顶在带顶——两行要点的页面下半页会空掉一大半，
+    这是「模板感」最刺眼的来源。
+    """
+    needed = _measure_height(shape, w)
+    if not needed:
+        return
+
+    eff_spacing = int(base_spacing) if count > 1 else 0
+    if base_spacing and count > 1:
+        goal = int(band_h * fill)
+        if needed < goal:
+            extra = int((goal - needed) / count)
+            extra = min(extra, int(base_spacing * (max_grow - 1)))
+            if extra > 0:
+                try:
+                    cursor = shape.createTextCursor()
+                    cursor.gotoStart(False)
+                    cursor.gotoEnd(True)
+                    cursor.ParaBottomMargin = int(base_spacing) + extra
+                except Exception:
+                    pass
+                eff_spacing = int(base_spacing) + extra
+                needed = _measure_height(shape, w) or needed
+
+    # 量出来的高度含最后一段的段后距，这块留白在纸面上是看不见的。
+    # 不减掉它，分配出来的块会整体偏高，看着像还压在标题下面。
+    visual = max(1, int(needed) - eff_spacing)
+    slack = int(band_h) - visual
+    if slack <= 0:
+        return
+    from com.sun.star.awt import Point, Size
+
+    try:
+        shape.setPosition(Point(int(shape.Position.X), int(band_top) + int(slack * bias)))
+        shape.setSize(Size(int(w), int(band_h)))
+    except Exception:
+        pass
+
+
+def add_text_balanced(doc, page, x, band_top, w, band_h, text, spacing=0, **kw):
+    """在 [band_top, band_top + band_h] 这条带里排版，而不是永远顶对齐。"""
+    shape = add_text(doc, page, x, band_top, w, band_h, text, spacing=spacing, **kw)
+    if (text or "").strip():
+        count = len([line for line in str(text).split("\n") if line.strip()]) or 1
+        _distribute(shape, w, band_top, band_h, spacing, count)
+    return shape
+
+
 def _placeholder_image(doc, page, x, y, w, h, path=""):
     """缺图占位：灰底 + 描边 + 文件名。
 
@@ -884,7 +968,34 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
               size=14, color=muted, font=SANS)
         footer()
 
-    elif layout in ("editorial", "bullets"):
+    elif layout == "editorial":
+        add_rect(doc, page, 0, 0, W, H, bg)
+        label(MX, MY - 560, kicker or "editorial", accent)
+        # 左栏巨号数字是 editorial 的版式身份。以前这个分支和 bullets 共用同一段
+        # 代码，承诺的巨号数字从来没画出来，两种版式长得一模一样。
+        numeral_w = int(W * 0.235)
+        # 数字框顶端对齐标题的视觉顶边：150 磅的字形在框里会往下沉约 90px，
+        # 框仍从 H*0.30 起画的话，数字的视觉中心会明显低于右侧竖线。
+        T(doc, page, MX, int(H * 0.245), numeral_w, int(H * 0.40), "%02d" % index,
+          size=150, color=_mix(bg, fg, 0.20), font=SERIF, bold=True, fit=False)
+        rule_x = MX + numeral_w + 380
+        add_rect(doc, page, rule_x, int(H * 0.305), 6, int(H * 0.285), hair)
+        col_x = rule_x + 1000
+        col_w = W - MX - col_x
+        T(doc, page, col_x, int(H * 0.275), col_w, int(H * 0.235), title,
+          size=32, color=fg, font=SERIF, bold=True)
+        top = int(H * 0.275) + int(H * 0.235)
+        avail = H - top - MY - 700
+        if bullets:
+            add_text_balanced(doc, page, col_x, top, col_w, avail,
+                              "\n".join("—  " + b for b in bullets),
+                              size=17, color=fg, font=SANS, spacing=880, hanging=620)
+        elif body:
+            add_text_balanced(doc, page, col_x, top, col_w, avail, body,
+                              size=17, color=fg, font=SANS)
+        footer()
+
+    elif layout == "bullets":
         add_rect(doc, page, 0, 0, W, H, bg)
         label(MX, MY - 560, kicker or "overview", accent)
         T(doc, page, MX, MY + 380, int(W * 0.80), int(H * 0.25), title,
@@ -893,10 +1004,12 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
         top = MY + int(H * 0.255) + 820
         avail = H - top - MY - 450
         if bullets:
-            T(doc, page, MX, top, CW, avail, "\n".join("—  " + b for b in bullets),
-              size=17.5, color=fg, font=SANS, spacing=880, hanging=620)
+            add_text_balanced(doc, page, MX, top, CW, avail,
+                              "\n".join("—  " + b for b in bullets),
+                              size=17.5, color=fg, font=SANS, spacing=880, hanging=620)
         elif body:
-            T(doc, page, MX, top, CW, avail, body, size=18, color=fg, font=SANS)
+            add_text_balanced(doc, page, MX, top, CW, avail, body,
+                              size=18, color=fg, font=SANS)
         footer()
 
     elif layout == "table":
@@ -918,17 +1031,36 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
         T(doc, page, MX, MY + 380, int(W * 0.80), int(H * 0.20), title,
           size=34, color=fg, font=SERIF, bold=True)
         items = [r for r in rows if len(r) >= 2][:4]
+        if not items:
+            # rows 没填的时候，也认 bullets 里 "42%｜效率提升" 这种写法。
+            # 这条路径以前根本没有：空 kpi 页会安静地只画一个标题，
+            # 结果里 warnings 还是空的，用户只能看到一张近乎空白的页面。
+            for item in bullets:
+                parts = [p.strip() for p in re.split(r"[｜|]", item, maxsplit=1)]
+                if len(parts) == 2 and parts[0] and parts[1]:
+                    items.append(parts)
+            items = items[:4]
+        if not items:
+            warn("kpi 版式没有可用数据：请在 rows 里给两列，或用 \"数值｜标签\" 形式的 bullets；本页只画了标题")
         n = max(1, len(items))
         col_w = CW // n
-        top = int(H * 0.44)
+        # kpi 是"一屏就看完"的版式：数字得撑住版面，整组要在标题与页脚
+        # 之间垂直居中。原来固定 top = H*0.44，条目少时下半页整片空着。
+        num_h = int(H * 0.20)
+        lab_h = int(H * 0.10)
+        gap = int(H * 0.02)
+        block_h = num_h + gap + lab_h
+        band_top = MY + 380 + int(H * 0.20)
+        band_h = H - band_top - MY - 300
+        top = band_top + max(0, int((band_h - block_h) * BALANCE_BIAS))
         for i, item in enumerate(items):
             x = MX + i * col_w
             if i:
-                add_rect(doc, page, x - 420, top, 6, int(H * 0.26), hair)
-            T(doc, page, x, top, col_w - 700, int(H * 0.17), str(item[0]), size=54,
+                add_rect(doc, page, x - 420, top, 6, block_h, hair)
+            T(doc, page, x, top, col_w - 700, num_h, str(item[0]), size=72,
               color=accent2, font=SERIF, bold=True)
-            T(doc, page, x, top + int(H * 0.175), col_w - 700, int(H * 0.14), str(item[1]),
-              size=12.5, color=muted, font=SANS)
+            T(doc, page, x, top + num_h + gap, col_w - 700, lab_h, str(item[1]),
+              size=13, color=muted, font=SANS)
         footer()
 
     elif layout == "index":
@@ -939,7 +1071,13 @@ def layout_lux(doc, session, page, slide, spec, palette, geom, index, total):
         top = MY + int(H * 0.275)
         add_rect(doc, page, MX, top, CW, 6, hair)
         top += 820
-        row_h = min(int((H - top - MY - 300) / max(1, len(bullets))), 2500)
+        band = H - top - MY - 300
+        row_h = min(int(band / max(1, len(bullets))), 2500)
+        # 条目少时 row_h 被 2500 封顶，剩下的高度全堆在页脚上方。把这块
+        # 富余按 BALANCE_BIAS 分给上下，目录页才不会看着像没排完。
+        slack = band - row_h * max(1, len(bullets))
+        if slack > 0:
+            top += int(slack * BALANCE_BIAS)
         for i, item in enumerate(bullets):
             y = top + i * row_h
             T(doc, page, MX, y, 1500, 800, "%02d" % (i + 1), size=19, color=accent,
@@ -1228,13 +1366,17 @@ def layout_slide(doc, session, page, slide, spec, palette, geom, index, total):
         add_rect(doc, page, M, M + 2300, 1600, 100, accent)
         content_top = M + 3000
         content_h = H - content_top - M - 1200
+        # 行宽不能给到整页宽：16:9 上一条长要点会拉成一百多字的超长行，
+        # 换行位置全凭运气。按页宽 0.74 封顶，中文大约六十字一行。
+        measure = min(W - 2 * M, int(W * 0.74))
         if bullets:
-            add_text(doc, page, M, content_top, W - 2 * M, content_h,
-                     "\n".join("\u2022  " + item for item in bullets),
-                     size=spec.get("bulletSize", 17), color=fg, font=font, spacing=900)
+            add_text_balanced(doc, page, M, content_top, measure, content_h,
+                              "\n".join("\u2022  " + item for item in bullets),
+                              size=spec.get("bulletSize", 20), color=fg, font=font,
+                              spacing=900)
         elif body:
-            add_text(doc, page, M, content_top, W - 2 * M, content_h, body,
-                     size=spec.get("bulletSize", 17), color=fg, font=font)
+            add_text_balanced(doc, page, M, content_top, measure, content_h, body,
+                              size=spec.get("bulletSize", 20), color=fg, font=font)
         footer()
 
     set_notes(page, slide.get("notes"))
